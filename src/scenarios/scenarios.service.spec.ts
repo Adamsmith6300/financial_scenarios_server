@@ -305,40 +305,82 @@ describe('ScenariosService', () => {
     it("should return complete waterfall calculation with formatting and COGS", async () => {
       const result = await service.calculateWaterfallScenario();
 
-      // Test revenue data
-      expect(result.monthlyTotals).toHaveLength(36);
-      expect(result.formattedTotals).toHaveLength(36);
+      // Test that all detail arrays have 36 months
       expect(result.monthlyDetails).toHaveLength(36);
-
-      // Test COGS data
-      expect(result.monthlyCogsTotals).toHaveLength(36);
-      expect(result.formattedCogsTotals).toHaveLength(36);
       expect(result.monthlyCogsDetails).toHaveLength(36);
+      expect(result.monthlyGrossIncomeDetails).toHaveLength(36);
+      expect(result.monthlyProfitMarginDetails).toHaveLength(36);
+      expect(result.monthlyCumulativeGrossProfitDetails).toHaveLength(36);
 
-      // Test first 7 months revenue specifically (using correct values from endpoint)
-      expect(result.monthlyTotals.slice(0, 7)).toEqual([
-        100000, 200000, 0, 425130, 75390, 75390, 175910,
-      ]);
-      expect(result.formattedTotals.slice(0, 7)).toEqual([
-        "$100,000.00",
-        "$200,000.00",
-        "$0.00",
-        "$425,130.00",
-        "$75,390.00",
-        "$75,390.00",
-        "$175,910.00",
+      // Test first 7 months of detailed data
+      expect(result.monthlyDetails.slice(0, 7)).toEqual([
+        { month: 1, total: 100000, formattedTotal: "$100,000.00" },
+        { month: 2, total: 200000, formattedTotal: "$200,000.00" },
+        { month: 3, total: 0, formattedTotal: "$0.00" },
+        { month: 4, total: 425130, formattedTotal: "$425,130.00" },
+        { month: 5, total: 75390, formattedTotal: "$75,390.00" },
+        { month: 6, total: 75390, formattedTotal: "$75,390.00" },
+        { month: 7, total: 175910, formattedTotal: "$175,910.00" },
       ]);
 
-      // Test first 7 months COGS specifically
-      // Month 1: 10 SKUs * 500 = 5000
-      // Month 2: 10 SKUs * 300 + 20 SKUs * 500 = 3000 + 10000 = 13000
-      // Month 3: 20 SKUs * 300 = 6000 (month 2 SKUs incur month 2 COGS)
-      // Month 4: 10 SKUs * 200 + 40 SKUs * 500 = 2000 + 20000 = 22000
-      // Month 5: 20 SKUs * 200 + 40 SKUs * 300 = 4000 + 12000 = 16000
-      // Month 6: 0 (no month 3 COGS available)
-      // Month 7: 40 SKUs * 200 = 8000 (month 4 SKUs incur month 4 COGS)
-      expect(result.monthlyCogsTotals.slice(0, 7)).toEqual([
-        5000, 13000, 6000, 22000, 16000, 0, 8000,
+      expect(result.monthlyCogsDetails.slice(0, 7)).toEqual([
+        { month: 1, total: 5000, formattedTotal: "$5,000.00" },
+        { month: 2, total: 13000, formattedTotal: "$13,000.00" },
+        { month: 3, total: 6000, formattedTotal: "$6,000.00" },
+        { month: 4, total: 22000, formattedTotal: "$22,000.00" },
+        { month: 5, total: 16000, formattedTotal: "$16,000.00" },
+        { month: 6, total: 0, formattedTotal: "$0.00" },
+        { month: 7, total: 8000, formattedTotal: "$8,000.00" },
+      ]);
+
+      expect(result.monthlyGrossIncomeDetails.slice(0, 7)).toEqual([
+        { month: 1, total: 95000, formattedTotal: "$95,000.00" },
+        { month: 2, total: 187000, formattedTotal: "$187,000.00" },
+        { month: 3, total: -6000, formattedTotal: "$-6,000.00" },
+        { month: 4, total: 403130, formattedTotal: "$403,130.00" },
+        { month: 5, total: 59390, formattedTotal: "$59,390.00" },
+        { month: 6, total: 75390, formattedTotal: "$75,390.00" },
+        { month: 7, total: 167910, formattedTotal: "$167,910.00" },
+      ]);
+
+      expect(result.monthlyProfitMarginDetails.slice(0, 7)).toEqual([
+        { month: 1, marginPercent: 95, formattedMargin: "95.00%" },
+        { month: 2, marginPercent: 93.5, formattedMargin: "93.50%" },
+        { month: 3, marginPercent: null, formattedMargin: "N/A" },
+        {
+          month: 4,
+          marginPercent: 94.8251123185849,
+          formattedMargin: "94.83%",
+        },
+        {
+          month: 5,
+          marginPercent: 78.77702613078658,
+          formattedMargin: "78.78%",
+        },
+        { month: 6, marginPercent: 100, formattedMargin: "100.00%" },
+        {
+          month: 7,
+          marginPercent: 95.45221988516856,
+          formattedMargin: "95.45%",
+        },
+      ]);
+
+      // Test cumulative gross profit (running total)
+      // Month 1: 95000
+      // Month 2: 95000 + 187000 = 282000
+      // Month 3: 282000 + (-6000) = 276000
+      // Month 4: 276000 + 403130 = 679130
+      // Month 5: 679130 + 59390 = 738520
+      // Month 6: 738520 + 75390 = 813910
+      // Month 7: 813910 + 167910 = 981820
+      expect(result.monthlyCumulativeGrossProfitDetails.slice(0, 7)).toEqual([
+        { month: 1, total: 95000, formattedTotal: "$95,000.00" },
+        { month: 2, total: 282000, formattedTotal: "$282,000.00" },
+        { month: 3, total: 276000, formattedTotal: "$276,000.00" },
+        { month: 4, total: 679130, formattedTotal: "$679,130.00" },
+        { month: 5, total: 738520, formattedTotal: "$738,520.00" },
+        { month: 6, total: 813910, formattedTotal: "$813,910.00" },
+        { month: 7, total: 981820, formattedTotal: "$981,820.00" },
       ]);
 
       // Test that month numbers are correct for all 36 months
@@ -346,6 +388,15 @@ describe('ScenariosService', () => {
         expect(detail.month).toBe(index + 1);
       });
       result.monthlyCogsDetails.forEach((detail, index) => {
+        expect(detail.month).toBe(index + 1);
+      });
+      result.monthlyGrossIncomeDetails.forEach((detail, index) => {
+        expect(detail.month).toBe(index + 1);
+      });
+      result.monthlyProfitMarginDetails.forEach((detail, index) => {
+        expect(detail.month).toBe(index + 1);
+      });
+      result.monthlyCumulativeGrossProfitDetails.forEach((detail, index) => {
         expect(detail.month).toBe(index + 1);
       });
     });

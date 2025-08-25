@@ -147,16 +147,27 @@ export class ScenariosService {
   }
 
   async calculateWaterfallScenario(): Promise<{
-    monthlyTotals: number[];
-    formattedTotals: string[];
     monthlyDetails: Array<{
       month: number;
       total: number;
       formattedTotal: string;
     }>;
-    monthlyCogsTotals: number[];
-    formattedCogsTotals: string[];
     monthlyCogsDetails: Array<{
+      month: number;
+      total: number;
+      formattedTotal: string;
+    }>;
+    monthlyGrossIncomeDetails: Array<{
+      month: number;
+      total: number;
+      formattedTotal: string;
+    }>;
+    monthlyProfitMarginDetails: Array<{
+      month: number;
+      marginPercent: number;
+      formattedMargin: string;
+    }>;
+    monthlyCumulativeGrossProfitDetails: Array<{
       month: number;
       total: number;
       formattedTotal: string;
@@ -177,13 +188,6 @@ export class ScenariosService {
       revenueSku,
       36
     );
-    const formattedTotals = monthlyTotals.map(
-      (total) =>
-        `$${total.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
-    );
 
     const monthlyDetails = monthlyTotals.map((total, index) => ({
       month: index + 1,
@@ -200,13 +204,6 @@ export class ScenariosService {
       revenueSku.sku_id,
       36
     );
-    const formattedCogsTotals = monthlyCogsTotals.map(
-      (total) =>
-        `$${total.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
-    );
 
     const monthlyCogsDetails = monthlyCogsTotals.map((total, index) => ({
       month: index + 1,
@@ -217,13 +214,61 @@ export class ScenariosService {
       })}`,
     }));
 
+    // Calculate gross income totals (revenue - COGS)
+    const monthlyGrossIncomeTotals = monthlyTotals.map(
+      (revenue, index) => revenue - monthlyCogsTotals[index]
+    );
+
+    const monthlyGrossIncomeDetails = monthlyGrossIncomeTotals.map(
+      (total, index) => ({
+        month: index + 1,
+        total,
+        formattedTotal: `$${total.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+      })
+    );
+
+    // Calculate profit margin percentages (gross income / revenue * 100)
+    const monthlyProfitMargins = monthlyTotals.map((revenue, index) => {
+      if (revenue === 0) {
+        // Handle division by zero - if no revenue, margin is undefined/null
+        return revenue === monthlyCogsTotals[index] ? 0 : null;
+      }
+      return (monthlyGrossIncomeTotals[index] / revenue) * 100;
+    });
+
+    const monthlyProfitMarginDetails = monthlyProfitMargins.map(
+      (margin, index) => ({
+        month: index + 1,
+        marginPercent: margin,
+        formattedMargin: margin === null ? "N/A" : `${margin.toFixed(2)}%`,
+      })
+    );
+
+    // Calculate cumulative gross profit (running total of gross income)
+    let cumulativeTotal = 0;
+    const monthlyCumulativeGrossProfitDetails = monthlyGrossIncomeTotals.map(
+      (grossIncome, index) => {
+        cumulativeTotal += grossIncome;
+        return {
+          month: index + 1,
+          total: cumulativeTotal,
+          formattedTotal: `$${cumulativeTotal.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+        };
+      }
+    );
+
     return {
-      monthlyTotals,
-      formattedTotals,
       monthlyDetails,
-      monthlyCogsTotals,
-      formattedCogsTotals,
       monthlyCogsDetails,
+      monthlyGrossIncomeDetails,
+      monthlyProfitMarginDetails,
+      monthlyCumulativeGrossProfitDetails,
     };
   }
 }

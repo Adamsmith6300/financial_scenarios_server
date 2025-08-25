@@ -20,16 +20,6 @@ describe('ScenariosController', () => {
   };
 
   const mockWaterfallResult = {
-    monthlyTotals: [100000, 200000, 0, 424700, 74100, 74100, 172900],
-    formattedTotals: [
-      "$100,000.00",
-      "$200,000.00",
-      "$0.00",
-      "$424,700.00",
-      "$74,100.00",
-      "$74,100.00",
-      "$172,900.00",
-    ],
     monthlyDetails: [
       { month: 1, total: 100000, formattedTotal: "$100,000.00" },
       { month: 2, total: 200000, formattedTotal: "$200,000.00" },
@@ -39,16 +29,6 @@ describe('ScenariosController', () => {
       { month: 6, total: 74100, formattedTotal: "$74,100.00" },
       { month: 7, total: 172900, formattedTotal: "$172,900.00" },
     ],
-    monthlyCogsTotals: [5000, 13000, 6000, 22000, 16000, 0, 8000],
-    formattedCogsTotals: [
-      "$5,000.00",
-      "$13,000.00",
-      "$6,000.00",
-      "$22,000.00",
-      "$16,000.00",
-      "$0.00",
-      "$8,000.00",
-    ],
     monthlyCogsDetails: [
       { month: 1, total: 5000, formattedTotal: "$5,000.00" },
       { month: 2, total: 13000, formattedTotal: "$13,000.00" },
@@ -57,6 +37,33 @@ describe('ScenariosController', () => {
       { month: 5, total: 16000, formattedTotal: "$16,000.00" },
       { month: 6, total: 0, formattedTotal: "$0.00" },
       { month: 7, total: 8000, formattedTotal: "$8,000.00" },
+    ],
+    monthlyGrossIncomeDetails: [
+      { month: 1, total: 95000, formattedTotal: "$95,000.00" },
+      { month: 2, total: 187000, formattedTotal: "$187,000.00" },
+      { month: 3, total: -6000, formattedTotal: "-$6,000.00" },
+      { month: 4, total: 403130, formattedTotal: "$403,130.00" },
+      { month: 5, total: 59390, formattedTotal: "$59,390.00" },
+      { month: 6, total: 75390, formattedTotal: "$75,390.00" },
+      { month: 7, total: 167910, formattedTotal: "$167,910.00" },
+    ],
+    monthlyProfitMarginDetails: [
+      { month: 1, marginPercent: 95, formattedMargin: "95.00%" },
+      { month: 2, marginPercent: 93.5, formattedMargin: "93.50%" },
+      { month: 3, marginPercent: null, formattedMargin: "N/A" },
+      { month: 4, marginPercent: 94.8251123185849, formattedMargin: "94.83%" },
+      { month: 5, marginPercent: 78.77702613078658, formattedMargin: "78.78%" },
+      { month: 6, marginPercent: 100, formattedMargin: "100.00%" },
+      { month: 7, marginPercent: 95.45221988516856, formattedMargin: "95.45%" },
+    ],
+    monthlyCumulativeGrossProfitDetails: [
+      { month: 1, total: 95000, formattedTotal: "$95,000.00" },
+      { month: 2, total: 282000, formattedTotal: "$282,000.00" },
+      { month: 3, total: 276000, formattedTotal: "$276,000.00" },
+      { month: 4, total: 679130, formattedTotal: "$679,130.00" },
+      { month: 5, total: 738520, formattedTotal: "$738,520.00" },
+      { month: 6, total: 813910, formattedTotal: "$813,910.00" },
+      { month: 7, total: 981820, formattedTotal: "$981,820.00" },
     ],
   };
 
@@ -87,59 +94,76 @@ describe('ScenariosController', () => {
   describe("getWaterfall", () => {
     it("should return waterfall calculation results", async () => {
       const mockResult36Months = {
-        ...mockWaterfallResult,
-        monthlyTotals: new Array(36)
-          .fill(0)
-          .map((_, i) =>
-            i < 7 ? mockWaterfallResult.monthlyTotals[i] || 0 : 175910
-          ),
-        formattedTotals: new Array(36)
-          .fill("$0.00")
-          .map((_, i) =>
-            i < 7
-              ? mockWaterfallResult.formattedTotals[i] || "$0.00"
-              : "$175,910.00"
-          ),
         monthlyDetails: new Array(36).fill(null).map((_, i) => ({
           month: i + 1,
-          total: i < 7 ? mockWaterfallResult.monthlyTotals[i] || 0 : 175910,
+          total:
+            i < 7 ? mockWaterfallResult.monthlyDetails[i]?.total || 0 : 175910,
           formattedTotal:
             i < 7
-              ? mockWaterfallResult.formattedTotals[i] || "$0.00"
+              ? mockWaterfallResult.monthlyDetails[i]?.formattedTotal || "$0.00"
               : "$175,910.00",
         })),
-        monthlyCogsTotals: new Array(36)
-          .fill(0)
-          .map((_, i) =>
-            i < 7 ? mockWaterfallResult.monthlyCogsTotals[i] || 0 : 0
-          ),
-        formattedCogsTotals: new Array(36)
-          .fill("$0.00")
-          .map((_, i) =>
-            i < 7
-              ? mockWaterfallResult.formattedCogsTotals[i] || "$0.00"
-              : "$0.00"
-          ),
         monthlyCogsDetails: new Array(36).fill(null).map((_, i) => ({
           month: i + 1,
-          total: i < 7 ? mockWaterfallResult.monthlyCogsTotals[i] || 0 : 0,
+          total:
+            i < 7 ? mockWaterfallResult.monthlyCogsDetails[i]?.total || 0 : 0,
           formattedTotal:
             i < 7
-              ? mockWaterfallResult.formattedCogsTotals[i] || "$0.00"
+              ? mockWaterfallResult.monthlyCogsDetails[i]?.formattedTotal ||
+                "$0.00"
               : "$0.00",
         })),
+        monthlyGrossIncomeDetails: new Array(36).fill(null).map((_, i) => ({
+          month: i + 1,
+          total:
+            i < 7
+              ? mockWaterfallResult.monthlyGrossIncomeDetails[i]?.total || 0
+              : 0,
+          formattedTotal:
+            i < 7
+              ? mockWaterfallResult.monthlyGrossIncomeDetails[i]
+                  ?.formattedTotal || "$0.00"
+              : "$0.00",
+        })),
+        monthlyProfitMarginDetails: new Array(36).fill(null).map((_, i) => ({
+          month: i + 1,
+          marginPercent:
+            i < 7
+              ? mockWaterfallResult.monthlyProfitMarginDetails[i]
+                  ?.marginPercent || 0
+              : 0,
+          formattedMargin:
+            i < 7
+              ? mockWaterfallResult.monthlyProfitMarginDetails[i]
+                  ?.formattedMargin || "0.00%"
+              : "0.00%",
+        })),
+        monthlyCumulativeGrossProfitDetails: new Array(36)
+          .fill(null)
+          .map((_, i) => ({
+            month: i + 1,
+            total:
+              i < 7
+                ? mockWaterfallResult.monthlyCumulativeGrossProfitDetails[i]
+                    ?.total || 0
+                : 0,
+            formattedTotal:
+              i < 7
+                ? mockWaterfallResult.monthlyCumulativeGrossProfitDetails[i]
+                    ?.formattedTotal || "$0.00"
+                : "$0.00",
+          })),
       };
 
       service.calculateWaterfallScenario.mockResolvedValue(mockResult36Months);
 
       const result = await controller.getWaterfall();
 
-      expect(result.monthlyTotals).toHaveLength(36);
-      expect(result.formattedTotals).toHaveLength(36);
       expect(result.monthlyDetails).toHaveLength(36);
-      expect(result.monthlyCogsTotals).toHaveLength(36);
-      expect(result.formattedCogsTotals).toHaveLength(36);
       expect(result.monthlyCogsDetails).toHaveLength(36);
+      expect(result.monthlyGrossIncomeDetails).toHaveLength(36);
+      expect(result.monthlyProfitMarginDetails).toHaveLength(36);
+      expect(result.monthlyCumulativeGrossProfitDetails).toHaveLength(36);
       expect(service.calculateWaterfallScenario).toHaveBeenCalledTimes(1);
     });
 
@@ -154,18 +178,25 @@ describe('ScenariosController', () => {
 
     it("should pass through all service response data", async () => {
       const customResult = {
-        ...mockWaterfallResult,
-        monthlyTotals: [50000, 100000],
-        formattedTotals: ["$50,000.00", "$100,000.00"],
         monthlyDetails: [
           { month: 1, total: 50000, formattedTotal: "$50,000.00" },
           { month: 2, total: 100000, formattedTotal: "$100,000.00" },
         ],
-        monthlyCogsTotals: [2500, 5000],
-        formattedCogsTotals: ["$2,500.00", "$5,000.00"],
         monthlyCogsDetails: [
           { month: 1, total: 2500, formattedTotal: "$2,500.00" },
           { month: 2, total: 5000, formattedTotal: "$5,000.00" },
+        ],
+        monthlyGrossIncomeDetails: [
+          { month: 1, total: 47500, formattedTotal: "$47,500.00" },
+          { month: 2, total: 95000, formattedTotal: "$95,000.00" },
+        ],
+        monthlyProfitMarginDetails: [
+          { month: 1, marginPercent: 95, formattedMargin: "95.00%" },
+          { month: 2, marginPercent: 95, formattedMargin: "95.00%" },
+        ],
+        monthlyCumulativeGrossProfitDetails: [
+          { month: 1, total: 47500, formattedTotal: "$47,500.00" },
+          { month: 2, total: 142500, formattedTotal: "$142,500.00" },
         ],
       };
 
@@ -173,17 +204,25 @@ describe('ScenariosController', () => {
 
       const result = await controller.getWaterfall();
 
-      expect(result.monthlyTotals).toEqual([50000, 100000]);
-      expect(result.formattedTotals).toEqual(["$50,000.00", "$100,000.00"]);
       expect(result.monthlyDetails).toEqual([
         { month: 1, total: 50000, formattedTotal: "$50,000.00" },
         { month: 2, total: 100000, formattedTotal: "$100,000.00" },
       ]);
-      expect(result.monthlyCogsTotals).toEqual([2500, 5000]);
-      expect(result.formattedCogsTotals).toEqual(["$2,500.00", "$5,000.00"]);
       expect(result.monthlyCogsDetails).toEqual([
         { month: 1, total: 2500, formattedTotal: "$2,500.00" },
         { month: 2, total: 5000, formattedTotal: "$5,000.00" },
+      ]);
+      expect(result.monthlyGrossIncomeDetails).toEqual([
+        { month: 1, total: 47500, formattedTotal: "$47,500.00" },
+        { month: 2, total: 95000, formattedTotal: "$95,000.00" },
+      ]);
+      expect(result.monthlyProfitMarginDetails).toEqual([
+        { month: 1, marginPercent: 95, formattedMargin: "95.00%" },
+        { month: 2, marginPercent: 95, formattedMargin: "95.00%" },
+      ]);
+      expect(result.monthlyCumulativeGrossProfitDetails).toEqual([
+        { month: 1, total: 47500, formattedTotal: "$47,500.00" },
+        { month: 2, total: 142500, formattedTotal: "$142,500.00" },
       ]);
     });
   });
