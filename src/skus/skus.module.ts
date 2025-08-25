@@ -7,5 +7,6 @@ import { SupabaseModule } from '../supabase/supabase.module';
   imports: [SupabaseModule],
   controllers: [SkusController],
   providers: [SkusService],
+  exports: [SkusService],
 })
 export class SkusModule {}

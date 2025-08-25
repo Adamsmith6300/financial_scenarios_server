@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { SkusService, CogsMonthlyBreakdown } from "../skus/skus.service";
 
 export interface RevenueSku {
   sku_id: string;
@@ -21,19 +22,22 @@ export interface WaterfallScenario {
 
 @Injectable()
 export class ScenariosService {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly skusService: SkusService
+  ) {}
 
   async getR10RevenueSku(): Promise<RevenueSku> {
     const { data, error } = await this.supabaseService
       .getClient()
-      .from('revenue_skus')
-      .select('*')
-      .eq('sku_id', 'R10')
+      .from("revenue_skus")
+      .select("*")
+      .eq("sku_id", "R10")
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        throw new NotFoundException('R10 revenue SKU not found');
+      if (error.code === "PGRST116") {
+        throw new NotFoundException("R10 revenue SKU not found");
       }
       throw new Error(`Failed to fetch R10 revenue SKU: ${error.message}`);
     }
@@ -45,7 +49,10 @@ export class ScenariosService {
     return skuCount * depositAmount;
   }
 
-  calculateMonthlyRevenue(skuCount: number, monthlyRevenueAmount: number): number {
+  calculateMonthlyRevenue(
+    skuCount: number,
+    monthlyRevenueAmount: number
+  ): number {
     return skuCount * monthlyRevenueAmount;
   }
 
@@ -59,76 +66,164 @@ export class ScenariosService {
     totalMonths: number = 7
   ): number[] {
     const monthlyTotals: number[] = new Array(totalMonths).fill(0);
-    
-    scenarios.forEach(scenario => {
+
+    scenarios.forEach((scenario) => {
       const { month: startMonth, skuCount } = scenario;
-      
+
       for (let month = 1; month <= totalMonths; month++) {
         if (month < startMonth) continue;
-        
+
         const monthsFromStart = month - startMonth + 1;
-        
+
         if (monthsFromStart === 1) {
           monthlyTotals[month - 1] += this.calculateDepositRevenue(
-            skuCount, 
+            skuCount,
             revenueSku.upfront_deposit
           );
         }
-        
+
         if (monthsFromStart >= revenueSku.active_revenue_start_month) {
-          if (!revenueSku.active_revenue_end_month || 
-              monthsFromStart <= revenueSku.active_revenue_end_month) {
+          if (
+            !revenueSku.active_revenue_end_month ||
+            monthsFromStart <= revenueSku.active_revenue_end_month
+          ) {
             monthlyTotals[month - 1] += this.calculateMonthlyRevenue(
-              skuCount, 
+              skuCount,
               revenueSku.monthly_revenue
             );
           }
         }
-        
-        if (revenueSku.deposit_refund_month && 
-            monthsFromStart === revenueSku.deposit_refund_month) {
+
+        if (
+          revenueSku.deposit_refund_month &&
+          monthsFromStart === revenueSku.deposit_refund_month
+        ) {
           monthlyTotals[month - 1] -= this.calculateDepositRefund(
-            skuCount, 
+            skuCount,
             revenueSku.upfront_deposit
           );
         }
       }
     });
-    
+
     return monthlyTotals;
+  }
+
+  async calculateWaterfallCogs(
+    scenarios: WaterfallScenario[],
+    revenueSkuId: string,
+    totalMonths: number = 36
+  ): Promise<number[]> {
+    // Get COGS breakdown for the revenue SKU
+    const cogsBreakdown = await this.skusService.getCogsBreakdownForRevenueSku(
+      revenueSkuId
+    );
+
+    // Create aggregated COGS by month
+    const cogsByMonth: { [month: number]: number } = {};
+    cogsBreakdown.forEach((breakdown) => {
+      cogsByMonth[breakdown.month_number] = breakdown.cogs_amount;
+    });
+
+    const monthlyCogsTotals: number[] = new Array(totalMonths).fill(0);
+
+    scenarios.forEach((scenario) => {
+      const { month: startMonth, skuCount } = scenario;
+
+      for (let month = 1; month <= totalMonths; month++) {
+        if (month < startMonth) continue;
+
+        const monthsFromStart = month - startMonth + 1;
+
+        // Add COGS for this SKU count based on the month from start
+        if (cogsByMonth[monthsFromStart]) {
+          monthlyCogsTotals[month - 1] +=
+            skuCount * cogsByMonth[monthsFromStart];
+        }
+      }
+    });
+
+    return monthlyCogsTotals;
   }
 
   async calculateWaterfallScenario(): Promise<{
     monthlyTotals: number[];
     formattedTotals: string[];
-    monthlyDetails: Array<{ month: number; total: number; formattedTotal: string }>;
-    revenueSku: RevenueSku;
+    monthlyDetails: Array<{
+      month: number;
+      total: number;
+      formattedTotal: string;
+    }>;
+    monthlyCogsTotals: number[];
+    formattedCogsTotals: string[];
+    monthlyCogsDetails: Array<{
+      month: number;
+      total: number;
+      formattedTotal: string;
+    }>;
   }> {
     const revenueSku = await this.getR10RevenueSku();
-    
+
     const scenarios: WaterfallScenario[] = [
       { month: 1, skuCount: 10 },
       { month: 2, skuCount: 20 },
       { month: 3, skuCount: 0 },
-      { month: 4, skuCount: 40 }
+      { month: 4, skuCount: 40 },
     ];
-    
-    const monthlyTotals = this.calculateWaterfallRevenue(scenarios, revenueSku, 36);
-    const formattedTotals = monthlyTotals.map(total => 
-      `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+    // Calculate revenue totals
+    const monthlyTotals = this.calculateWaterfallRevenue(
+      scenarios,
+      revenueSku,
+      36
     );
-    
+    const formattedTotals = monthlyTotals.map(
+      (total) =>
+        `$${total.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+    );
+
     const monthlyDetails = monthlyTotals.map((total, index) => ({
       month: index + 1,
       total,
-      formattedTotal: `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      formattedTotal: `$${total.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
     }));
-    
+
+    // Calculate COGS totals
+    const monthlyCogsTotals = await this.calculateWaterfallCogs(
+      scenarios,
+      revenueSku.sku_id,
+      36
+    );
+    const formattedCogsTotals = monthlyCogsTotals.map(
+      (total) =>
+        `$${total.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+    );
+
+    const monthlyCogsDetails = monthlyCogsTotals.map((total, index) => ({
+      month: index + 1,
+      total,
+      formattedTotal: `$${total.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+    }));
+
     return {
       monthlyTotals,
       formattedTotals,
       monthlyDetails,
-      revenueSku
+      monthlyCogsTotals,
+      formattedCogsTotals,
+      monthlyCogsDetails,
     };
   }
 }
