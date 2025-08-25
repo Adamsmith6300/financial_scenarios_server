@@ -10,6 +10,8 @@ services:
     environment:
       - PORT=8080
       - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
@@ -28,10 +30,12 @@ services:
     environment:
       - PORT=8080
       - NODE_ENV=development
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     volumes:
       - .:/app
       - /app/node_modules
-    command: npm run start:dev
+    command: npm run start:hot
     restart: unless-stopped
     profiles:
       - dev
