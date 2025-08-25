@@ -1,12 +1,28 @@
-import { Controller, Get } from '@nestjs/common';
-import { ScenariosService } from './scenarios.service';
+import { Controller, Get, Post, Body } from "@nestjs/common";
+import { ScenariosService } from "./scenarios.service";
 
-@Controller('scenarios')
+export interface GenerateScenarioRequest {
+  name: string;
+  skuItems: Array<{
+    skuId: string;
+    startMonth: number;
+    quantity: number;
+    growthType: "percentage" | "increment" | "none";
+    growthValue?: number;
+  }>;
+}
+
+@Controller("scenarios")
 export class ScenariosController {
   constructor(private readonly scenariosService: ScenariosService) {}
 
-  @Get('waterfall')
+  @Get("waterfall")
   async getWaterfall() {
     return this.scenariosService.calculateWaterfallScenario();
+  }
+
+  @Post("generate")
+  async generateScenario(@Body() request: GenerateScenarioRequest) {
+    return this.scenariosService.calculateDynamicScenario(request);
   }
 }

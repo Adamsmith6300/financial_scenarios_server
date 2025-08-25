@@ -1,0 +1,12 @@
+{
+  "name": "Increment Growth Test - Starting with 1 unit, +2 each month",
+  "skuItems": [
+    {
+      "skuId": "R10",
+      "startMonth": 1,
+      "quantity": 1,
+      "growthType": "increment",
+      "growthValue": 2
+    }
+  ]
+}
